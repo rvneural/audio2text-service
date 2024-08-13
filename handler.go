@@ -32,15 +32,19 @@ func handle(conn net.Conn) {
 			data += string(trimmed_data)
 		}
 	}
+
+	// Парминг данных
 	data = strings.TrimSpace(data)
 	lang = strings.TrimSpace(data[0:5])
 	filePath = strings.TrimSpace(data[6:])
 
 	log.Println(conn.RemoteAddr(), "Readed data: ", data)
 
+	// Транскрибация
 	log.Println(conn.RemoteAddr(), "Starting transcription")
 	recognitionText := recognize(filePath, lang)
 
+	// Возврат результата
 	log.Println(conn.RemoteAddr(), "Sending data")
 	_, err := conn.Write([]byte(recognitionText + "\v"))
 	if err != nil {
