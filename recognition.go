@@ -50,6 +50,7 @@ func readFileContent(pathToPempFiles string) ([]string, error) {
 
 	// Переносим байты в строки as-is
 	var wg sync.WaitGroup
+	var errq error = nil
 	stringFileContent = make([]string, len(byteFileContent))
 	for i := range len(byteFileContent) {
 		wg.Add(1)
@@ -57,7 +58,11 @@ func readFileContent(pathToPempFiles string) ([]string, error) {
 			defer wg.Done()
 			var buffer bytes.Buffer
 			for b, q := range byteFileContent[i] {
-				buffer.WriteString(strconv.Itoa(int(q)))
+				_, e := buffer.WriteString(strconv.Itoa(int(q)))
+				if e != nil {
+					errq = e
+					break
+				}
 				if b != len(byteFileContent[i])-1 {
 					buffer.WriteString(" ")
 				}
@@ -66,6 +71,10 @@ func readFileContent(pathToPempFiles string) ([]string, error) {
 		}(&stringFileContent[i])
 	}
 	wg.Wait()
+
+	if errq != nil {
+		return stringFileContent, errq
+	}
 
 	return stringFileContent, nil
 }
@@ -84,8 +93,8 @@ func recognize(filePath string, lang string) string {
 	}
 
 	stringFileContent, err := readFileContent(pathToPempFiles)
-
 	if err != nil {
+		log.Println("Error while ggetting string content:", err)
 		return err.Error()
 	}
 
