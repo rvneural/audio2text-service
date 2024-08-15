@@ -44,6 +44,9 @@ func handle(conn net.Conn) {
 	log.Println(conn.RemoteAddr(), "Starting transcription")
 	recognitionText := recognize(filePath, lang)
 
+	// Нормализация результата
+	recognitionText = normilize(recognitionText)
+
 	// Возврат результата
 	log.Println(conn.RemoteAddr(), "Sending data")
 	_, err := conn.Write([]byte(recognitionText + "\v"))
