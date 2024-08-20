@@ -38,20 +38,46 @@ func handle(conn net.Conn) {
 	lang = strings.TrimSpace(data[0:5])
 	filePath = strings.TrimSpace(data[6:])
 
+	var need_normalization bool = true
+
+	parts := strings.Split(filePath, "/")
+	fileName := parts[len(parts)-1]
+
+	need_normalization = strings.Contains(fileName, "norm_")
+	log.Println("Normalization:", need_normalization)
+
 	log.Println(conn.RemoteAddr(), "Readed data: ", data)
+	log.Println("Language:", lang)
+	log.Println("File path:", filePath)
 
 	// Транскрибация
 	log.Println(conn.RemoteAddr(), "Starting transcription")
-	recognitionText := recognize(filePath, lang)
+	recognitionText, err_rec := recognize(filePath, lang)
 
-	// Нормализация результата
-	recognitionText = normilize(recognitionText)
+	if err_rec == nil {
+		log.Println("Recognition text:", recognitionText)
+		var recognitionNormText string = recognitionText
+		if recognitionText != "" && need_normalization {
+			// Нормализация результата
+			recognitionNormText = normilize(recognitionText)
+		}
 
-	// Возврат результата
-	log.Println(conn.RemoteAddr(), "Sending data")
-	_, err := conn.Write([]byte(recognitionText + "\v"))
-	if err != nil {
-		log.Println(conn.RemoteAddr(), "Error during sending data: ", err)
+		if recognitionNormText == "" {
+			recognitionNormText = "Yandex Server in unavailable"
+		}
+		log.Println("Recognition text:", recognitionText)
+
+		// Возврат результата
+		log.Println(conn.RemoteAddr(), "Sending data to main server: ", recognitionNormText)
+		_, err := conn.Write([]byte(recognitionNormText + "\v"))
+		if err != nil {
+			log.Println(conn.RemoteAddr(), "Error during sending data: ", err)
+		}
+	} else {
+		_, err := conn.Write([]byte(err_rec.Error() + "\v"))
+		if err != nil {
+			log.Println(conn.RemoteAddr(), "Error during sending data: ", err)
+		}
 	}
 
 	conn.Close()

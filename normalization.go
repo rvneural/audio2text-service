@@ -22,7 +22,7 @@ func normilize(text string) string {
 
 	defer conn.Close()
 
-	_, err = conn.Write([]byte(request))
+	_, err = conn.Write([]byte(request + "\v"))
 	if err != nil {
 		log.Println("Normalization service is not available", err)
 		return text
