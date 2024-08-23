@@ -14,10 +14,10 @@ import (
 	"time"
 )
 
-const API_KEY = "AQVNy3RDQQxrKiTsZJdB1ROjOMucYrAJk9f1KnT3"
-const STORAGE_KEY_ID = "YCAJEfHe4j4TL9uMWwiAnCNNs"
-const STORAGE_KEY = "YCP6_D3De-jmgeRmK8w7EzPTEjaTInV7GfvbDGlR"
-const BUCKET_NAME = "rvrecognition2"
+const API_KEY = "AQVNy3RDQQxrKiTsZJdB1ROjOMucYrAJk9f1KnT3"     // API-Key для Yandex Speech Kit
+const STORAGE_KEY_ID = "YCAJEfHe4j4TL9uMWwiAnCNNs"             // ID ключа для AWS
+const STORAGE_KEY = "YCP6_D3De-jmgeRmK8w7EzPTEjaTInV7GfvbDGlR" // Ключ AWS
+const BUCKET_NAME = "rvrecognition2"                           // Имя бакета в Yandex Object Storage
 
 func uploadToBucket(fullPath string) (string, error) {
 	var bucketAddress string
@@ -33,16 +33,68 @@ func uploadToBucket(fullPath string) (string, error) {
 	err := cmd.Run()
 
 	if err != nil {
-		log.Println("ERROR WHILE UPLOADING FILE TO BUCKET:", err)
+		log.Println(fullPath, "-> ERROR WHILE UPLOADING FILE TO BUCKET:", err)
 		log.Println(cmd)
 		return "", err
 	}
+
+	log.Println(fullPath, "uploaded to bucket")
 
 	bucketAddress = "https://storage.yandexcloud.net/" + BUCKET_NAME + "/" + key
 	return bucketAddress, nil
 }
 
+func getAllSpeakerTexts(lines [][]byte) (string, error) {
+	log.Println("Started parcer of responses from Yandex GPT")
+	trueLines := make([][]byte, 0, len(lines))
+
+	for _, line := range lines {
+		if strings.Contains(string(line), "\"final\":{\"alternatives\":") {
+			trueLines = append(trueLines, line)
+		}
+	}
+
+	GetResponses := make([]structures.GetResponse, len(trueLines))
+	for i, line := range trueLines {
+		err := json.Unmarshal(line, &(GetResponses[i]))
+		if err != nil {
+			return "", err
+		}
+	}
+
+	currentChannelTag := GetResponses[0].Result.ChannelTag
+	speachParts := make([]string, 0, len(GetResponses))
+	var currentChannelText string = ""
+
+	for i, resp := range GetResponses {
+		if resp.Result.ChannelTag != currentChannelTag {
+			currentChannelTag = resp.Result.ChannelTag
+			speachParts = append(speachParts, strings.TrimSpace(currentChannelText))
+			currentChannelText = ""
+		}
+		currentChannelText += " "
+		currentChannelText += resp.Result.Final.Alternatives[0].Text
+		if i == (len(GetResponses) - 1) {
+			speachParts = append(speachParts, strings.TrimSpace(currentChannelText))
+		}
+	}
+
+	if len(speachParts) == 1 {
+		return speachParts[0], nil
+	}
+	var text string = ""
+
+	for _, part := range speachParts {
+		text += "— " + strings.TrimSpace(part) + "\n\n"
+	}
+
+	text = strings.TrimSpace(text)
+
+	return text, nil
+}
+
 func getResult(id string) (string, error) {
+	log.Println("Started getResult for id:", id)
 	checkHttpURL := "https://operation.api.cloud.yandex.net/operations/" + id
 	getHttpURL := "https://stt.api.cloud.yandex.net:443/stt/v3/getRecognition?operation_id=" + id
 
@@ -54,7 +106,6 @@ func getResult(id string) (string, error) {
 	request.Header.Set("Authorization", "Api-Key "+API_KEY)
 
 	client := &http.Client{}
-	var GetResponse structures.GetResponse
 	var CheckResponse structures.CheckResponse
 
 	// Проверка на готовность
@@ -110,44 +161,30 @@ func getResult(id string) (string, error) {
 
 	reader := bufio.NewReader(resp.Body)
 
-	line, err := reader.ReadBytes('\n')
+	var lines [][]byte
 
 	var i = 0
-	for i < 2 {
-		l, _ := reader.ReadBytes('\n')
-		log.Println(string(l))
+	for {
+		l, err := reader.ReadBytes('\n')
+		if err == io.EOF {
+			break
+		}
+		lines = append(lines, l)
 		i++
 	}
 
-	reader.Reset(resp.Body)
-	size := reader.Size()
-	data := make([]byte, size)
-	reader.Read(data)
-	log.Println("\n\n\n\nDATA\n\n\n\n", string(data))
+	result, err := getAllSpeakerTexts(lines)
 
 	if err != nil {
-		log.Println("Error while reading get response:", err)
-		log.Println(resp)
+		log.Println(err)
 		return "", err
 	}
 
-	if resp.StatusCode != 200 {
-		return "", errors.New("Yandex result server is unavailable.\nStatus: " + resp.Status + "\nResult: " + string(line))
-	}
-
-	err = json.Unmarshal(line, &GetResponse)
-
-	if err != nil {
-		log.Println("\n\n\n\n\nError while unmarshalling get response:", err)
-		log.Println(string(line))
-		return "", err
-	}
-
-	log.Println("Body:", GetResponse)
-	return GetResponse.Result.Final.Alternatives[0].Text, nil
+	return result, nil
 }
 
-func sendRequest(fileData string, lang string) (string, error) {
+func sendRequest(fileData string, lang string, isDialog bool) (string, error) {
+	log.Println("Sending request to Yandex STT for", fileData)
 	httpURL := "https://stt.api.cloud.yandex.net:443/stt/v3/recognizeFileAsync"
 	httpMethod := "POST"
 
@@ -157,11 +194,18 @@ func sendRequest(fileData string, lang string) (string, error) {
 	// Инициализация тела запроса
 	httpBody := &structures.SendRequest{}
 
-	httpBody.URI = fileData
-	httpBody.RecognitionModel.LanguageRestriction.LanguageCode = []string{lang}
-	httpBody.RecognitionModel.Model = "general:rc"
-	httpBody.RecognitionModel.AudioFormat.ContainerAudio.ContainerAudioType = strings.ToUpper(typeF)
-	httpBody.RecognitionModel.LanguageRestriction.RestrictionType = "WHITELIST"
+	httpBody.URI = fileData                                                                          // Путь к файлу в бакете
+	httpBody.RecognitionModel.Model = "general:rc"                                                   // Выбор модели: general / general:rc
+	httpBody.RecognitionModel.AudioFormat.ContainerAudio.ContainerAudioType = strings.ToUpper(typeF) // Указание типа файла
+	httpBody.RecognitionModel.LanguageRestriction.LanguageCode = []string{lang}                      // Указание языков
+	httpBody.RecognitionModel.LanguageRestriction.RestrictionType = "WHITELIST"                      // Указание параметра использования языков
+	httpBody.RecognitionModel.TextNormalization.TextNormalization = "TEXT_NORMALIZATION_DISABLED"    // Отключение нормализации текста
+	if isDialog {
+		httpBody.SpeakerLabeling.SpeakerLabeling = "SPEAKER_LABELING_ENABLED" // Подключение разделения на спикеров
+	} else {
+		httpBody.SpeakerLabeling.SpeakerLabeling = "SPEAKER_LABELING_DISABLED"
+	}
+	httpBody.RecognitionModel.AudioProcessingType = "FULL_DATA" // Выбор, как обрабатывать аудио: в реальном времени или после получения
 
 	data, err := json.Marshal(httpBody)
 	if err != nil {
@@ -175,6 +219,7 @@ func sendRequest(fileData string, lang string) (string, error) {
 	}
 
 	request.Header.Set("Authorization", "Api-Key "+API_KEY)
+	request.Header.Set("x-data-logging-enabled", "true")
 
 	client := &http.Client{}
 
@@ -206,35 +251,36 @@ func sendRequest(fileData string, lang string) (string, error) {
 		return "", err
 	}
 
-	log.Println("Body:", objBody)
-	log.Println(resp)
-
+	log.Println(fileData, "->", resp)
 	return objBody.Id, nil
 }
 
-// Функция распознования речи
-func recognize(filePath string, lang string) (string, error) {
-	var recognitionText string = "Test: " + filePath + "\nLang: " + lang
-	stringFileContent, err := uploadToBucket(filePath)
+// Функция распознавания речи в файле.
+// Returns RawText, NormText, Error
+func recognize(filePath string, lang string, dialog bool) (string, string, error) {
+	log.Println("Startring recognition for", filePath)
+	bucketFilePath, err := uploadToBucket(filePath)
 
 	if err != nil {
 		log.Println("Error while uploading file to bucket:", err)
-		return "", err
+		return "", "", err
 	}
 
-	id, err := sendRequest(stringFileContent, lang)
+	id, err := sendRequest(bucketFilePath, lang, dialog)
 
 	if err != nil {
-		log.Println("Error while sending data: ", err)
-		return "", err
+		log.Println("Error while sending request:", err)
+		return "", "", err
 	}
 
-	recognitionText, err = getResult(id)
+	rawText, err := getResult(id) // Голая расшифровка
 
 	if err != nil {
-		log.Println("Error while getting result: ", err)
-		return "", err
+		log.Println("Error while getting result from Yandex:", err)
+		return "", "", err
 	}
 
-	return recognitionText, nil
+	normalizedText := normilize(rawText) // Расшифровка, нормализованная через нейросеть
+
+	return rawText, normalizedText, nil
 }
