@@ -19,6 +19,7 @@ const STORAGE_KEY_ID = "YCAJEfHe4j4TL9uMWwiAnCNNs"             // ID ключа 
 const STORAGE_KEY = "YCP6_D3De-jmgeRmK8w7EzPTEjaTInV7GfvbDGlR" // Ключ AWS
 const BUCKET_NAME = "rvrecognition2"                           // Имя бакета в Yandex Object Storage
 
+// Функция для загрузки файла на Yandex Object Storage
 func uploadToBucket(fullPath string) (string, error) {
 	var bucketAddress string
 	fparams := strings.Split(fullPath, "/")
@@ -44,6 +45,7 @@ func uploadToBucket(fullPath string) (string, error) {
 	return bucketAddress, nil
 }
 
+// Функция для получения текста из ответа
 func getAllSpeakerTexts(lines [][]byte) (string, error) {
 	log.Println("Started parcer of responses from Yandex GPT")
 	trueLines := make([][]byte, 0, len(lines))
@@ -93,7 +95,8 @@ func getAllSpeakerTexts(lines [][]byte) (string, error) {
 	return text, nil
 }
 
-func getResult(id string) (string, error) {
+// Функция для получения ответа Yandex STT
+func getRecognitionResult(id string) (string, error) {
 	log.Println("Started getResult for id:", id)
 	checkHttpURL := "https://operation.api.cloud.yandex.net/operations/" + id
 	getHttpURL := "https://stt.api.cloud.yandex.net:443/stt/v3/getRecognition?operation_id=" + id
@@ -141,7 +144,7 @@ func getResult(id string) (string, error) {
 			break
 		} else {
 			<-time.After(1 * time.Second)
-			log.Println("Done:", CheckResponse.Done)
+			log.Println("Done:", CheckResponse.Done, string(checkData[:q]))
 			continue
 		}
 	}
@@ -183,7 +186,8 @@ func getResult(id string) (string, error) {
 	return result, nil
 }
 
-func sendRequest(fileData string, lang string, isDialog bool) (string, error) {
+// Функция для отправки запроса на Yandex STT
+func sendRecognitionRequest(fileData string, lang string, isDialog bool) (string, error) {
 	log.Println("Sending request to Yandex STT for", fileData)
 	httpURL := "https://stt.api.cloud.yandex.net:443/stt/v3/recognizeFileAsync"
 	httpMethod := "POST"
@@ -191,6 +195,7 @@ func sendRequest(fileData string, lang string, isDialog bool) (string, error) {
 	splits := strings.Split(fileData, ".")
 	typeF := splits[len(splits)-1]
 	log.Println("File type:", typeF)
+
 	// Инициализация тела запроса
 	httpBody := &structures.SendRequest{}
 
@@ -232,6 +237,10 @@ func sendRequest(fileData string, lang string, isDialog bool) (string, error) {
 	}
 	log.Println("File sent. Status:", resp.Status)
 	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		return "", errors.New("yandex: " + resp.Status)
+	}
+
 	log.Println("Send file status:", resp.Status)
 	var objBody structures.SendResponse
 
@@ -259,28 +268,28 @@ func sendRequest(fileData string, lang string, isDialog bool) (string, error) {
 // Returns RawText, NormText, Error
 func recognize(filePath string, lang string, dialog bool) (string, string, error) {
 	log.Println("Startring recognition for", filePath)
-	bucketFilePath, err := uploadToBucket(filePath)
+	bucketFilePath, err := uploadToBucket(filePath) // Загрузка файла в бакет
 
 	if err != nil {
 		log.Println("Error while uploading file to bucket:", err)
 		return "", "", err
 	}
 
-	id, err := sendRequest(bucketFilePath, lang, dialog)
+	id, err := sendRecognitionRequest(bucketFilePath, lang, dialog) // Отправка запроса на распознавание
 
 	if err != nil {
 		log.Println("Error while sending request:", err)
 		return "", "", err
 	}
 
-	rawText, err := getResult(id) // Голая расшифровка
+	rawText, err := getRecognitionResult(id) // Получение результата распознавания
 
 	if err != nil {
 		log.Println("Error while getting result from Yandex:", err)
 		return "", "", err
 	}
 
-	normalizedText := normilize(rawText) // Расшифровка, нормализованная через нейросеть
+	normalizedText := normalize(rawText) // Нормализация текста
 
 	return rawText, normalizedText, nil
 }

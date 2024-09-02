@@ -2,47 +2,72 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
+	"io"
 	"log"
-	"net"
+	"net/http"
 	"strings"
 )
 
-const addr string = "127.0.0.1:45680"
+// Адрес для обращения к сервису нормализации текста
+const addr string = "http://127.0.0.1:45678/text/normalize"
 
-func normilize(text string) string {
+// Структура для отправки запроса к сервису нормализации
+type Request struct {
+	Text string `json:"text"` // Текст для нормализации
+}
+
+// Структура для получения ответа от сервиса нормализации
+type Response struct {
+	OldText string `json:"oldText"` // Исходный текст
+	NewText string `json:"newText"` // Нормализованный текст
+}
+
+// Основная функция для нормализации текста
+// Принимает текст на вход и возвращает нормализованный текст
+func normalize(text string) string {
 	var normalizedText string = ""
-	var request = text + "\v"
 
-	log.Println("Connecting to normalization service")
-	conn, err := net.Dial("tcp", addr)
+	// Создаем структуру для отправки запроса
+	request := Request{Text: text}
+
+	// Маршаллируем структуру в JSON-формате для отправки
+	bytesRequest, err := json.Marshal(request)
+
 	if err != nil {
-		log.Println("Normalization service is not available", err)
-		return text
+		log.Println("Error marshalling request", err)
+		return err.Error()
 	}
 
-	defer conn.Close()
-
-	_, err = conn.Write([]byte(request + "\v"))
+	// Отправляем запрос к сервису нормализации
+	resp, err := http.Post(addr, "application/json", bytes.NewReader(bytesRequest))
 	if err != nil {
-		log.Println("Normalization service is not available", err)
-		return text
+		log.Println("Error while sending request:", err)
+		return err.Error()
+	}
+	defer resp.Body.Close()
+
+	// Получаем ответ от сервиса
+	var response Response
+	byteResponse, err := io.ReadAll(resp.Body)
+
+	if err != nil {
+		log.Println("Error reading response body:", err)
+		return err.Error()
 	}
 
-	batch_size := len(text) + 50
-	for {
-		text_sile := make([]byte, batch_size)
-		_, err = conn.Read(text_sile)
-		if err != nil {
-			log.Println("Error during reading transcribed text: ", err)
-			return text
-		}
-		f_slice := bytes.Trim(text_sile, "\x00")
-		if string(f_slice[len(f_slice)-1]) == "\v" {
-			normalizedText += string(f_slice[:len(f_slice)-1])
-			break
-		}
-		normalizedText += string(f_slice)
+	// Выводим полученный ответ на консоль
+	log.Println(strings.TrimSpace(string(byteResponse)))
+
+	err = json.Unmarshal(byteResponse, &response)
+	if err != nil {
+		log.Println("Error unmarshalling response:", err)
+		return err.Error()
 	}
 
-	return strings.TrimSpace(normalizedText)
+	normalizedText = response.NewText
+
+	log.Printf("Normalized text: %s\n", strings.ReplaceAll(normalizedText, "\n", " "))
+
+	return normalizedText
 }

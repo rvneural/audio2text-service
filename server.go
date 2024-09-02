@@ -14,6 +14,11 @@ const (
 )
 
 func mainRecognizer(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+
 	log.Println("Request from", r.RemoteAddr)
 	data, err := io.ReadAll(r.Body)
 
@@ -31,7 +36,7 @@ func mainRecognizer(w http.ResponseWriter, r *http.Request) {
 	var request structures.RequestFromMainServer
 	err = json.Unmarshal(data, &request)
 	if err != nil {
-		log.Println("Error while unmarshalling body:", err)
+		log.Println("Error unmarshalling body:", err)
 		var ans structures.Resonse
 		ans.NormText = err.Error()
 		ans.RawText = err.Error()
@@ -41,7 +46,7 @@ func mainRecognizer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Println(r.RemoteAddr, " ->", request)
+	log.Println(r.RemoteAddr, " >>>", request)
 
 	filePath := request.FilePath
 	isDialog := request.Dialog
