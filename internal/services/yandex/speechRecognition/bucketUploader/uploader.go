@@ -2,6 +2,7 @@ package bucketuploader
 
 import (
 	"bytes"
+	"os"
 	"os/exec"
 	"strings"
 
@@ -38,6 +39,8 @@ func (u *Uploader) Upload(filePath string) (string, error) {
 		u.Logger.Error().Msg("Error uploading file to Yandex Cloud Storage: " + out.String())
 		return "", err
 	}
+
+	go os.Remove(filePath)
 
 	bucketAddress = "https://storage.yandexcloud.net/" + config.BUCKET_NAME + "/" + key
 	return bucketAddress, nil

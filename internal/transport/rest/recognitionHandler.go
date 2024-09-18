@@ -2,10 +2,9 @@ package rest
 
 import (
 	client2 "Audio2TextService/internal/models/json/client"
-	"net/http"
-
 	"github.com/labstack/echo/v4"
 	"github.com/rs/zerolog"
+	"net/http"
 )
 
 type Service interface {
@@ -54,6 +53,8 @@ func (h *Audio2TextHandler) HandleRequest(c echo.Context) error {
 		request.FileType, request.Languages, request.Dialog)
 
 	h.logger.Info().Msg("File converted")
+	h.logger.Info().Msg("Raw text: " + rawText)
+	h.logger.Info().Msg("Normalized text: " + normText)
 
 	if err != nil {
 		h.logger.Error().Msg("Error converting audio to text: " + err.Error())
