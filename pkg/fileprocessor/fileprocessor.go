@@ -39,7 +39,7 @@ func (fp *FileProcessor) ProcessFile(fileData []byte, fileType string) (string, 
 
 func (fp *FileProcessor) saveFile(fileData []byte, fileType string) (string, error) {
 	fp.Logger.Info().Msg("Saving file")
-	var filePath = "./../../uploads/" + fp.getRandonName(30) + "." + fileType
+	var filePath = "./../../uploads/" + fp.getRandonName(50) + "." + fileType
 	file, err := os.Create(filePath)
 
 	if err != nil {
@@ -55,6 +55,7 @@ func (fp *FileProcessor) saveFile(fileData []byte, fileType string) (string, err
 		fp.Logger.Error().Msg("Error creating file: " + err.Error())
 		return "", err
 	}
+	defer file.Close()
 	_, err = file.Write(fileData)
 
 	if err != nil {

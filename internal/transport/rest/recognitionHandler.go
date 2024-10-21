@@ -39,7 +39,6 @@ func (h *Audio2TextHandler) HandleRequest(c echo.Context) error {
 			Details: "Content type header is required\nUser application/json or application/x-www-form-urlencoded or application/xml"})
 	}
 
-	h.logger.Info().Msgf("Binding request: %+v", c.Request)
 	err := c.Bind(request)
 
 	if err != nil {
@@ -76,8 +75,6 @@ func (h *Audio2TextHandler) HandleRequest(c echo.Context) error {
 		request.File.Type, request.Languages, request.Dialog)
 
 	h.logger.Info().Msg("File converted")
-	h.logger.Info().Msg("Raw text: " + rawText)
-	h.logger.Info().Msg("Normalized text: " + normText)
 
 	if err != nil {
 		h.logger.Error().Msg("Error converting audio to text: " + err.Error())

@@ -2,7 +2,7 @@ package normalization
 
 import (
 	server "Audio2TextService/internal/config/normalization"
-	normalization2 "Audio2TextService/internal/models/json/normalization"
+	"Audio2TextService/internal/models/json/normalization"
 	"bytes"
 	"encoding/json"
 	"io"
@@ -28,7 +28,7 @@ func (n *Normalization) NormalizeText(text string) string {
 	var normalizedText string = ""
 
 	// Создаем структуру для отправки запроса
-	request := normalization2.Request{
+	request := normalization.Request{
 		Text:   text,
 		Model:  "pro",
 		Prompt: "{{ normalize }}",
@@ -61,7 +61,7 @@ func (n *Normalization) NormalizeText(text string) string {
 	defer resp.Body.Close()
 
 	// Получаем ответ от сервиса
-	var response normalization2.Response
+	var response normalization.Response
 	byteResponse, err := io.ReadAll(resp.Body)
 
 	if err != nil {
