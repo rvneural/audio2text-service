@@ -16,6 +16,8 @@ import (
 	processor "Audio2TextService/pkg/fileprocessor"
 	"Audio2TextService/pkg/fileprocessor/converter"
 
+	downloader "Audio2TextService/internal/services/fileDownloader"
+
 	"github.com/rs/zerolog"
 )
 
@@ -32,6 +34,7 @@ func New(logger *zerolog.Logger) *App {
 	uploader := uploader.New(logger)
 	recognizer := recognizer.New(logger)
 	parser := parser.New(logger)
+	fileDownloader := downloader.New(logger)
 
 	speechRecognition := speechRecognizer.New(uploader, recognizer, parser, logger)
 	normalization := normalization.New(logger)
@@ -41,7 +44,7 @@ func New(logger *zerolog.Logger) *App {
 
 	service := service.New(speechRecognition, normalization, processor, logger)
 
-	handler := handler.New(service, logger)
+	handler := handler.New(service, fileDownloader, logger)
 	endpoint := endpoint.New(handler, logger)
 
 	return &App{endpoint: endpoint, handler: handler, service: service, logger: logger}

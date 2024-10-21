@@ -45,7 +45,7 @@ func (fp *FileProcessor) saveFile(fileData []byte, fileType string) (string, err
 	if err != nil {
 		fp.Logger.Error().Msg("Error creating file: " + err.Error())
 		if os.IsNotExist(err) {
-			err = os.MkdirAll("./uploads", 0755)
+			err = os.MkdirAll("./../..uploads", 0755)
 			if err != nil {
 				fp.Logger.Error().Msg("Error creating directory: " + err.Error())
 				return "", err

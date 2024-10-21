@@ -2,22 +2,28 @@ package rest
 
 import (
 	client2 "Audio2TextService/internal/models/json/client"
+	"net/http"
+
 	"github.com/labstack/echo/v4"
 	"github.com/rs/zerolog"
-	"net/http"
 )
 
 type Service interface {
 	ConvertAudioToText(fileData []byte, fileType string, lang []string, dialog bool) (rawText string, normText string, err error)
 }
 
-type Audio2TextHandler struct {
-	service Service
-	logger  *zerolog.Logger
+type Donwloader interface {
+	Download(url string) ([]byte, string, error)
 }
 
-func New(service Service, logger *zerolog.Logger) *Audio2TextHandler {
-	return &Audio2TextHandler{service: service, logger: logger}
+type Audio2TextHandler struct {
+	service    Service
+	downloader Donwloader
+	logger     *zerolog.Logger
+}
+
+func New(service Service, downloader Donwloader, logger *zerolog.Logger) *Audio2TextHandler {
+	return &Audio2TextHandler{service: service, downloader: downloader, logger: logger}
 }
 
 func (h *Audio2TextHandler) HandleRequest(c echo.Context) error {
@@ -40,6 +46,23 @@ func (h *Audio2TextHandler) HandleRequest(c echo.Context) error {
 		h.logger.Error().Msg("Error binding request body: " + err.Error())
 		return c.JSON(http.StatusBadRequest, client2.Error{Error: "Invalid request body",
 			Details: err.Error()})
+	}
+
+	if request.URL != "" && len(request.FileData) != 0 {
+		h.logger.Error().Msg("Both file data and url are specified")
+		return c.JSON(http.StatusBadRequest, client2.Error{Error: "Both file data and url are specified",
+			Details: "Only one of them should be specified"})
+	}
+
+	if request.URL != "" {
+		h.logger.Info().Msg("Downloading file from URL: " + request.URL)
+		request.FileData, request.FileType, err = h.downloader.Download(request.URL)
+
+		if err != nil {
+			h.logger.Error().Msg("Error downloading file: " + err.Error())
+			return c.JSON(http.StatusInternalServerError, client2.Error{Error: "Error downloading file",
+				Details: err.Error()})
+		}
 	}
 
 	if len(request.FileData) == 0 || request.FileType == "" {
