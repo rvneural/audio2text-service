@@ -6,7 +6,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -55,7 +54,6 @@ func (r *Recognizer) waitForRecognition(id string) (bool, error) {
 			return true, nil
 		} else {
 			<-time.After(1 * time.Second)
-			log.Println("Done:", CheckResponse.Done, string(checkData[:q]))
 			continue
 		}
 	}

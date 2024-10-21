@@ -1,9 +1,11 @@
 package client
 
 type Request struct {
-	URL       string   `json:"url" xml:"url" form:"url"`
-	FileData  []byte   `json:"fileData" xml:"fileData" form:"fileData"`
+	URL  string `json:"url" xml:"url" form:"url"`
+	File struct {
+		Data []byte `json:"data" xml:"data" form:"data"`
+		Type string `json:"type" xml:"type" form:"type"`
+	} `json:"file" xml:"file" form:"file"`
 	Languages []string `json:"languages" xml:"languages" form:"languages"`
-	FileType  string   `json:"fileType" xml:"fileType" form:"fileType"`
 	Dialog    bool     `json:"dialog" xml:"dialog" form:"dialog"`
 }

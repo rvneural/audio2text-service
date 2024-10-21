@@ -48,7 +48,7 @@ func (h *Audio2TextHandler) HandleRequest(c echo.Context) error {
 			Details: err.Error()})
 	}
 
-	if request.URL != "" && len(request.FileData) != 0 {
+	if request.URL != "" && len(request.File.Data) != 0 {
 		h.logger.Error().Msg("Both file data and url are specified")
 		return c.JSON(http.StatusBadRequest, client2.Error{Error: "Both file data and url are specified",
 			Details: "Only one of them should be specified"})
@@ -56,7 +56,7 @@ func (h *Audio2TextHandler) HandleRequest(c echo.Context) error {
 
 	if request.URL != "" {
 		h.logger.Info().Msg("Downloading file from URL: " + request.URL)
-		request.FileData, request.FileType, err = h.downloader.Download(request.URL)
+		request.File.Data, request.File.Type, err = h.downloader.Download(request.URL)
 
 		if err != nil {
 			h.logger.Error().Msg("Error downloading file: " + err.Error())
@@ -65,15 +65,15 @@ func (h *Audio2TextHandler) HandleRequest(c echo.Context) error {
 		}
 	}
 
-	if len(request.FileData) == 0 || request.FileType == "" {
+	if len(request.File.Data) == 0 || request.File.Type == "" {
 		h.logger.Error().Msg("Missing file data or file type")
 		return c.JSON(http.StatusBadRequest, client2.Error{Error: "Missing file data or file type",
 			Details: "File data and file type are required"})
 	}
 
 	h.logger.Info().Msg("Converting file")
-	rawText, normText, err := h.service.ConvertAudioToText(request.FileData,
-		request.FileType, request.Languages, request.Dialog)
+	rawText, normText, err := h.service.ConvertAudioToText(request.File.Data,
+		request.File.Type, request.Languages, request.Dialog)
 
 	h.logger.Info().Msg("File converted")
 	h.logger.Info().Msg("Raw text: " + rawText)
