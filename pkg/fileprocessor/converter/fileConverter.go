@@ -27,7 +27,11 @@ func (fc *FileConverter) ConvertFile(filePath string, fileType string) (string, 
 
 	if slices.Contains(video_types, strings.ToLower(fileType)) {
 		fc.Logger.Info().Msg("Starting convertion of video: " + filePath)
-		return fc.convertVideo(filePath, fileType)
+		audio, err := fc.convertVideo(filePath, fileType)
+		if err != nil {
+			return "", err
+		}
+		return fc.convertAudio(audio, "wav")
 	} else if slices.Contains(audio_types, strings.ToLower(fileType)) {
 		fc.Logger.Info().Msg("Starting convertion of audio: " + filePath)
 		return fc.convertAudio(filePath, fileType)
