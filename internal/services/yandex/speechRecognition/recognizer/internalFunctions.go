@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -49,6 +50,9 @@ func (r *Recognizer) waitForRecognition(id string) (bool, error) {
 		err = json.Unmarshal(checkData[:q], &CheckResponse)
 		if err != nil {
 			return false, err
+		}
+		if strings.ToLower(os.Getenv("DEBUG_MODE")) == "true" {
+			r.Logger.Debug().Msgf(string(checkData))
 		}
 		if CheckResponse.Done {
 			return true, nil

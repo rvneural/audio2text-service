@@ -22,16 +22,15 @@ func New(recognition Recognition, normalization Normalization, processor FilePro
 // Конвертирует аудиофайл в текст с указанием
 func (s *Service) ConvertAudioToText(fileData []byte, fileType string, lang []string, dialog bool) (rawText string, normText string, err error) {
 	s.Logger.Info().Msg("Service: Converting audio to text")
-
 	s.Logger.Info().Msg("Service: Starting file processing")
 	// Обрабатываем файл и получаем путь до него
 	filePath, err := s.FileProcessor.ProcessFile(fileData, fileType)
 
-	s.Logger.Debug().Msg("File processed OK")
 	if err != nil {
 		s.Logger.Error().Msg("Error processing file: " + err.Error())
 		return "", "", err
 	}
+	s.Logger.Debug().Msg("File processed OK")
 
 	s.Logger.Info().Msg("Converting " + filePath + " to text")
 	defer s.Logger.Info().Msg("Finished converting " + filePath + " to text")

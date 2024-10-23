@@ -3,6 +3,7 @@ package parser
 import (
 	model "Audio2TextService/internal/models/json/yandexstt/get"
 	"encoding/json"
+	"os"
 	"strings"
 
 	"github.com/rs/zerolog"
@@ -30,14 +31,30 @@ func (p *Parser) splitLine(line string, length int) []string {
 
 	str := ""
 
-	for _, word := range words {
+	for i, word := range words {
 		str += word + " "
 		currentLength += len(word)
-		if len(str) >= length {
+		if currentLength >= length {
+			if strings.ToLower(os.Getenv("DEBUG_MODE")) == "true" {
+				p.Logger.Debug().Msgf("Adding STR: %d", str)
+			}
 			lines = append(lines, strings.TrimSpace(str))
 			currentLength = 0
 			str = ""
 		}
+		if i == len(words)-1 {
+			if strings.ToLower(os.Getenv("DEBUG_MODE")) == "true" {
+				p.Logger.Debug().Msgf("Adding STR: %d", str)
+			}
+			lines = append(lines, strings.TrimSpace(str))
+		}
+	}
+
+	if strings.ToLower(os.Getenv("DEBUG_MODE")) == "true" {
+		p.Logger.Debug().Msg("===============================================")
+		p.Logger.Debug().Msg("===============================================")
+		p.Logger.Debug().Msg("===============================================")
+		p.Logger.Debug().Msgf("Lines: %d", lines)
 	}
 
 	return lines
@@ -66,6 +83,13 @@ func (p *Parser) prepareLines(lines []string, uniqPhraseSplitter string, maxLeng
 		}
 	}
 
+	if strings.ToLower(os.Getenv("DEBUG_MODE")) == "true" {
+		p.Logger.Debug().Msg("===============================================")
+		p.Logger.Debug().Msg("===============================================")
+		p.Logger.Debug().Msg("===============================================")
+		p.Logger.Debug().Msgf("New Lines: %d", newLines)
+	}
+
 	return newLines
 }
 
@@ -77,18 +101,45 @@ func (p *Parser) Parse(lines [][]byte, uniqPhraseSplitter string, maxLength int)
 	trueLines := make([][]byte, 0, len(lines))
 
 	for _, line := range lines {
+		if strings.ToLower(os.Getenv("DEBUG_MODE")) == "true" {
+			p.Logger.Debug().Msg(string(line))
+		}
 		if strings.Contains(string(line), "\"final\":{\"alternatives\":") {
 			trueLines = append(trueLines, line)
 		}
 	}
 
+	if strings.ToLower(os.Getenv("DEBUG_MODE")) == "true" {
+		p.Logger.Debug().Msg("===============================================")
+		p.Logger.Debug().Msg("===============================================")
+		p.Logger.Debug().Msg("===============================================")
+		for _, line := range trueLines {
+			p.Logger.Debug().Msg(string(line))
+		}
+	}
+
 	GetResponses := make([]model.Response, len(trueLines))
+	if strings.ToLower(os.Getenv("DEBUG_MODE")) == "true" {
+		p.Logger.Debug().Msg("===============================================")
+		p.Logger.Debug().Msg("===============================================")
+		p.Logger.Debug().Msg("===============================================")
+		p.Logger.Debug().Msgf("True Lines Len: %d", len(trueLines))
+		p.Logger.Debug().Msgf("Response Array Len: %v", len(GetResponses))
+	}
+
 	for i, line := range trueLines {
 		err := json.Unmarshal(line, &(GetResponses[i]))
 		if err != nil {
 			p.Logger.Error().Msg(err.Error())
 			return nil, err
 		}
+	}
+
+	if strings.ToLower(os.Getenv("DEBUG_MODE")) == "true" {
+		p.Logger.Debug().Msg("===============================================")
+		p.Logger.Debug().Msg("===============================================")
+		p.Logger.Debug().Msg("===============================================")
+		p.Logger.Debug().Msgf("Parsed Responses: %d", GetResponses)
 	}
 
 	currentChannelTag := GetResponses[0].Result.ChannelTag
@@ -106,6 +157,13 @@ func (p *Parser) Parse(lines [][]byte, uniqPhraseSplitter string, maxLength int)
 		if i == (len(GetResponses) - 1) {
 			speachParts = append(speachParts, strings.TrimSpace(currentChannelText))
 		}
+	}
+
+	if strings.ToLower(os.Getenv("DEBUG_MODE")) == "true" {
+		p.Logger.Debug().Msg("===============================================")
+		p.Logger.Debug().Msg("===============================================")
+		p.Logger.Debug().Msg("===============================================")
+		p.Logger.Debug().Msgf("Speech parts: %d", speachParts)
 	}
 
 	return p.prepareLines(speachParts, uniqPhraseSplitter, maxLength), nil
