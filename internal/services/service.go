@@ -3,7 +3,6 @@ package services
 import (
 	config "Audio2TextService/internal/config/service"
 	"strings"
-	"time"
 
 	"github.com/rs/zerolog"
 )
@@ -47,22 +46,29 @@ func (s *Service) ConvertAudioToText(fileData []byte, fileType string, lang []st
 	if len(rawLines) == 1 {
 		return rawLines[0], s.Normalization.NormalizeText(rawLines[0]), nil
 	} else {
-		const dialogStart = "—"
-		const lineSplitter = "\n\n"
+		var dialogStart = "—"
+		var lineSplitter = "\n\n"
+
+		if !dialog {
+			lineSplitter = " "
+			dialogStart = ""
+		}
+
 		var rawText string = ""
 		var normText string = ""
 
 		for _, line := range rawLines {
-			<-time.After(300 * time.Millisecond)
+			if !dialog {
+				line = strings.TrimSpace(strings.TrimPrefix(line, config.UNIQ_PHRASE_SPLITTER))
+			}
 			var isStartPhrase = strings.HasPrefix(line, config.UNIQ_PHRASE_SPLITTER)
 			p_line := strings.TrimSpace(strings.TrimPrefix(line, config.UNIQ_PHRASE_SPLITTER))
 			rawText += line + lineSplitter
 			normLine := s.Normalization.NormalizeText(p_line)
 			if isStartPhrase {
-				normText += dialogStart + " " + normLine + lineSplitter
-			} else {
-				normText += normLine + lineSplitter
+				normText += dialogStart + " "
 			}
+			normText += normLine + lineSplitter
 		}
 		return rawText, strings.TrimSpace(normText), nil
 	}
