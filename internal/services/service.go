@@ -49,11 +49,6 @@ func (s *Service) ConvertAudioToText(fileData []byte, fileType string, lang []st
 		var dialogStart = "—"
 		var lineSplitter = "\n\n"
 
-		if !dialog {
-			lineSplitter = " "
-			dialogStart = ""
-		}
-
 		var rawText string = ""
 		var normText string = ""
 
