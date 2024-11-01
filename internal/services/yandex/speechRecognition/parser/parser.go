@@ -87,7 +87,7 @@ func (p *Parser) prepareLines(lines []string, uniqPhraseSplitter string, maxLeng
 		p.Logger.Debug().Msg("===============================================")
 		p.Logger.Debug().Msg("===============================================")
 		p.Logger.Debug().Msg("===============================================")
-		p.Logger.Debug().Msgf("New Lines: %d", newLines)
+		p.Logger.Debug().Msgf("New Lines: %d\n", newLines)
 	}
 
 	return newLines
