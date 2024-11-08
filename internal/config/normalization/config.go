@@ -1,7 +1,9 @@
 package normalization
 
+import "os"
+
 // ADDR - Адрес сервиса по работе с текстом
-const ADDR = "http://127.0.0.1:8081"
+var ADDR = os.Getenv("TEXT_2_TEXT_ADDR")
 
 // TEXT_2_TEXT_KEY - Ключ для авторизации на сервисе по работе с текстом
-const TEXT_2_TEXT_KEY = "GAuhJOHQ4IQ3sJtFxyRO3OZ84ROyeb"
+var TEXT_2_TEXT_KEY = os.Getenv("TEXT_2_TEXT_KEY")
