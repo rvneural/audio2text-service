@@ -4,12 +4,13 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/rs/zerolog"
 )
 
-const DOWNLOAD_SERVICE_URL = "http://127.0.0.1:8084/file?url="
+var DOWNLOAD_SERVICE_URL = os.Getenv("FILE_DOWNLOADER")
 
 type Response struct {
 	Name string `json:"name"`
