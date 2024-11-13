@@ -3,6 +3,7 @@ package rest
 import (
 	client2 "Audio2TextService/internal/models/json/client"
 	"net/http"
+	"os"
 
 	"github.com/labstack/echo/v4"
 	"github.com/rs/zerolog"
@@ -40,6 +41,11 @@ func (h *Audio2TextHandler) HandleRequest(c echo.Context) error {
 	}
 
 	err := c.Bind(request)
+
+	if os.Getenv("DEBUG_MODE") == "true" {
+		h.logger.Info().Msgf("Request dialog: %+v", request.Dialog)
+		h.logger.Info().Msgf("Request lang: %+v", request.Languages)
+	}
 
 	if err != nil {
 		h.logger.Error().Msg("Error binding request body: " + err.Error())

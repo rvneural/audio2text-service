@@ -79,7 +79,9 @@ func (r *Recognizer) getRequestBody(fileURI, typeF string, lang []string, isDial
 		httpBody.SpeakerLabeling.SpeakerLabeling = "SPEAKER_LABELING_DISABLED"
 	}
 	httpBody.RecognitionModel.AudioProcessingType = "FULL_DATA" // Выбор, как обрабатывать аудио: в реальном времени или после получения
-
+	if os.Getenv("DEBUG_MODE") == "true" {
+		r.Logger.Debug().Msgf("Request body: %v", httpBody)
+	}
 	return httpBody
 }
 
