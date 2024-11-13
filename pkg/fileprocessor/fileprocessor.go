@@ -3,6 +3,7 @@ package fileprocessor
 import (
 	"os"
 	"path/filepath"
+	"strings"
 
 	"math/rand"
 
@@ -29,17 +30,12 @@ func (fp *FileProcessor) ProcessFile(fileData []byte, fileType string) (string, 
 		return "", err
 	}
 
-	convertedFilePath, err := fp.FileConverter.ConvertFile(filePath, fileType)
-	if err != nil {
-		return "", err
-	}
-
-	return convertedFilePath, nil
+	return fp.FileConverter.ConvertFile(filePath, fileType)
 }
 
 func (fp *FileProcessor) saveFile(fileData []byte, fileType string) (string, error) {
 	fp.Logger.Info().Msg("Saving file")
-	var filePath = "./../../uploads/" + fp.getRandonName(50) + "." + fileType
+	var filePath = "./../../uploads/" + fp.getRandonName(50) + "." + strings.ToLower(fileType)
 	file, err := os.Create(filePath)
 
 	if err != nil {
@@ -63,14 +59,7 @@ func (fp *FileProcessor) saveFile(fileData []byte, fileType string) (string, err
 		return "", err
 	}
 
-	fullPath, err := filepath.Abs(filePath)
-
-	if err != nil {
-		fp.Logger.Error().Msg("Error getting absolute path: " + err.Error())
-		return "", err
-	}
-
-	return fullPath, nil
+	return filepath.Abs(filePath)
 }
 
 func (fp *FileProcessor) getRandonName(length int) string {

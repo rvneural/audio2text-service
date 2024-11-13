@@ -11,6 +11,6 @@ const (
 var (
 	API_KEY        = os.Getenv("API_KEY")        // API-Key для Yandex Speech Kit
 	STORAGE_KEY_ID = os.Getenv("STORAGE_KEY_ID") // ID ключа для AWS
-	STORAGE_KEY    = os.Getenv("STORAGE_KEY ")   // Ключ AWS
-	BUCKET_NAME    = os.Getenv("BUCKET_NAME ")   // Имя бакета в Yandex Object Storage
+	STORAGE_KEY    = os.Getenv("STORAGE_KEY")    // Ключ AWS
+	BUCKET_NAME    = os.Getenv("BUCKET_NAME")    // Имя бакета в Yandex Object Storage
 )
