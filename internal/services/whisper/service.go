@@ -37,21 +37,28 @@ func (w *WhisperTransctiptor) RecognizeAudio(fileData []byte, fileType string) (
 
 	byteRequest, err := json.Marshal(request)
 	if err != nil {
+		w.Logger.Error().Err(err).Msg("Error marshalling request")
 		return "", err
 	}
 
 	response, err := http.Post(w.URL, "application/json", bytes.NewBuffer(byteRequest))
 	if err != nil {
+		w.Logger.Error().Err(err).Msg("Error sending request to whisper")
 		return "", err
 	}
 
 	byteData, err := io.ReadAll(response.Body)
 	if err != nil {
+		w.Logger.Error().Err(err).Msg("Error reading response body")
 		return "", err
 	}
 
 	var responseData whisper.Response
 	err = json.Unmarshal(byteData, &responseData)
+	if err != nil {
+		w.Logger.Error().Err(err).Msg("Error unmarshalling response")
+		w.Logger.Debug().Msg(string(byteData))
+	}
 	return responseData.Text, err
 }
 
