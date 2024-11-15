@@ -15,8 +15,13 @@ type Service struct {
 	Logger             *zerolog.Logger
 }
 
-func New(recognition Recognition, normalization Normalization, processor FileProcessor, logger *zerolog.Logger) *Service {
-	return &Service{Recognition: recognition, Normalization: normalization, Logger: logger, FileProcessor: processor}
+func New(recognition Recognition, whisperRecognition WhisperRecognition, normalization Normalization, processor FileProcessor, logger *zerolog.Logger) *Service {
+	return &Service{
+		Recognition:        recognition,
+		WhisperRecognition: whisperRecognition,
+		Normalization:      normalization,
+		Logger:             logger,
+		FileProcessor:      processor}
 }
 
 // Конвертирует аудиофайл в текст с указанием

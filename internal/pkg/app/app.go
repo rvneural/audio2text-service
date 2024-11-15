@@ -18,6 +18,8 @@ import (
 
 	downloader "Audio2TextService/internal/services/fileDownloader"
 
+	whisper "Audio2TextService/internal/services/whisper"
+
 	"github.com/rs/zerolog"
 )
 
@@ -42,7 +44,9 @@ func New(logger *zerolog.Logger) *App {
 	converter := converter.New(logger)
 	processor := processor.New(converter, logger)
 
-	service := service.New(speechRecognition, normalization, processor, logger)
+	whisperRecognition := whisper.New(logger)
+
+	service := service.New(speechRecognition, whisperRecognition, normalization, processor, logger)
 
 	handler := handler.New(service, fileDownloader, logger)
 	endpoint := endpoint.New(handler, logger)
