@@ -1,8 +1,9 @@
 package client
 
 type Request struct {
-	URL  string `json:"url" xml:"url" form:"url"`
-	File struct {
+	URL   string `json:"url" xml:"url" form:"url"`
+	Model string `json:"model" xml:"model" form:"model"`
+	File  struct {
 		Data []byte `json:"data" xml:"data" form:"data"`
 		Type string `json:"type" xml:"type" form:"type"`
 	} `json:"file" xml:"file" form:"file"`

@@ -4,6 +4,10 @@ type Recognition interface {
 	RecognizeAudio(filePath string, lang []string, dialog bool, uniqPhraseSplitter string, maxLength int) ([]string, error)
 }
 
+type WhisperRecognition interface {
+	RecognizeAudio(fileData []byte, fileType string) (string, error)
+}
+
 type Normalization interface {
 	NormalizeText(string) string
 }

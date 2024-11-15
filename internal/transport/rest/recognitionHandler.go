@@ -10,7 +10,7 @@ import (
 )
 
 type Service interface {
-	ConvertAudioToText(fileData []byte, fileType string, lang []string, dialog bool) (rawText string, normText string, err error)
+	ConvertAudioToText(fileData []byte, fileType string, model string, lang []string, dialog bool) (rawText string, normText string, err error)
 }
 
 type Donwloader interface {
@@ -78,7 +78,7 @@ func (h *Audio2TextHandler) HandleRequest(c echo.Context) error {
 
 	h.logger.Info().Msg("Converting file")
 	rawText, normText, err := h.service.ConvertAudioToText(request.File.Data,
-		request.File.Type, request.Languages, request.Dialog)
+		request.File.Type, request.Model, request.Languages, request.Dialog)
 
 	h.logger.Info().Msg("File converted")
 

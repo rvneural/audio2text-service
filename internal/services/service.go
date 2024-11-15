@@ -8,10 +8,11 @@ import (
 )
 
 type Service struct {
-	Recognition   Recognition
-	Normalization Normalization
-	FileProcessor FileProcessor
-	Logger        *zerolog.Logger
+	Recognition        Recognition
+	WhisperRecognition WhisperRecognition
+	Normalization      Normalization
+	FileProcessor      FileProcessor
+	Logger             *zerolog.Logger
 }
 
 func New(recognition Recognition, normalization Normalization, processor FileProcessor, logger *zerolog.Logger) *Service {
@@ -19,11 +20,18 @@ func New(recognition Recognition, normalization Normalization, processor FilePro
 }
 
 // Конвертирует аудиофайл в текст с указанием
-func (s *Service) ConvertAudioToText(fileData []byte, fileType string, lang []string, dialog bool) (rawText string, normText string, err error) {
+func (s *Service) ConvertAudioToText(fileData []byte, fileType string, model string, lang []string, dialog bool) (rawText string, normText string, err error) {
 	fileType = strings.ToLower(fileType)
 	s.Logger.Info().Msg("Service: Converting audio to text")
 	s.Logger.Info().Msg("Service: Starting file processing")
 	// Обрабатываем файл и получаем путь до него
+
+	if model == "whisper" {
+		s.Logger.Info().Msg("Using Whisper model")
+		transcriptedText, err := s.WhisperRecognition.RecognizeAudio(fileData, fileType)
+		return transcriptedText, transcriptedText, err
+	}
+
 	filePath, err := s.FileProcessor.ProcessFile(fileData, fileType)
 
 	if err != nil {
