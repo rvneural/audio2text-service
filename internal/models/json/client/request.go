@@ -11,3 +11,9 @@ type Request struct {
 	Languages []string `json:"languages" xml:"languages" form:"languages"`
 	Dialog    bool     `json:"dialog" xml:"dialog" form:"dialog"`
 }
+
+type DBResult struct {
+	FileName string `json:"filename"`
+	RawText  string `json:"raw_text"`
+	NormText string `json:"norm_text"`
+}

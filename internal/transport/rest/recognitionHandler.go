@@ -105,7 +105,12 @@ func (h *Audio2TextHandler) HandleRequest(c echo.Context) error {
 	}
 
 	if request.Operation_ID != "" {
-		data_result, _ := json.Marshal(response)
+		dbResult := client.DBResult{
+			FileName: "",
+			RawText:  rawText,
+			NormText: normText,
+		}
+		data_result, _ := json.Marshal(dbResult)
 		go h.dbworker.SetResult(request.Operation_ID, data_result)
 	}
 	return c.JSON(http.StatusOK, response)
