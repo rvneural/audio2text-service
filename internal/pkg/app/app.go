@@ -20,6 +20,9 @@ import (
 
 	whisper "Audio2TextService/internal/services/whisper"
 
+	config "Audio2TextService/internal/config/app"
+	dbworker "Audio2TextService/internal/services/db"
+
 	"github.com/rs/zerolog"
 )
 
@@ -48,7 +51,9 @@ func New(logger *zerolog.Logger) *App {
 
 	service := service.New(speechRecognition, whisperRecognition, normalization, processor, logger)
 
-	handler := handler.New(service, fileDownloader, logger)
+	db := dbworker.New(config.DB_URL)
+
+	handler := handler.New(service, fileDownloader, db, logger)
 	endpoint := endpoint.New(handler, logger)
 
 	return &App{endpoint: endpoint, handler: handler, service: service, logger: logger}

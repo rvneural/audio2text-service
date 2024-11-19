@@ -1,7 +1,8 @@
 package rest
 
 import (
-	client2 "Audio2TextService/internal/models/json/client"
+	"Audio2TextService/internal/models/json/client"
+	"encoding/json"
 	"net/http"
 	"os"
 
@@ -17,14 +18,20 @@ type Donwloader interface {
 	Download(url string) ([]byte, string, error)
 }
 
+type DBWorker interface {
+	RegisterOperation(uniqID string, operation_type string) error
+	SetResult(uniqID string, data []byte) error
+}
+
 type Audio2TextHandler struct {
 	service    Service
 	downloader Donwloader
 	logger     *zerolog.Logger
+	dbworker   DBWorker
 }
 
-func New(service Service, downloader Donwloader, logger *zerolog.Logger) *Audio2TextHandler {
-	return &Audio2TextHandler{service: service, downloader: downloader, logger: logger}
+func New(service Service, downloader Donwloader, dbworker DBWorker, logger *zerolog.Logger) *Audio2TextHandler {
+	return &Audio2TextHandler{service: service, downloader: downloader, logger: logger, dbworker: dbworker}
 }
 
 func (h *Audio2TextHandler) HandleRequest(c echo.Context) error {
@@ -32,11 +39,11 @@ func (h *Audio2TextHandler) HandleRequest(c echo.Context) error {
 	h.logger.Info().Msgf("Received request: %+v", c.RealIP())
 	defer h.logger.Info().Msgf("Received response: %+v", c.RealIP())
 
-	var request = new(client2.Request)
+	var request = new(client.Request)
 
 	if c.Request().Header.Get("Content-Type") == "" {
 		h.logger.Error().Msg("Missing content type header")
-		return c.JSON(http.StatusBadRequest, client2.Error{Error: "Missing content type header",
+		return c.JSON(http.StatusBadRequest, client.Error{Error: "Missing content type header",
 			Details: "Content type header is required\nUser application/json or application/x-www-form-urlencoded or application/xml"})
 	}
 
@@ -49,13 +56,13 @@ func (h *Audio2TextHandler) HandleRequest(c echo.Context) error {
 
 	if err != nil {
 		h.logger.Error().Msg("Error binding request body: " + err.Error())
-		return c.JSON(http.StatusBadRequest, client2.Error{Error: "Invalid request body",
+		return c.JSON(http.StatusBadRequest, client.Error{Error: "Invalid request body",
 			Details: err.Error()})
 	}
 
 	if request.URL != "" && len(request.File.Data) != 0 {
 		h.logger.Error().Msg("Both file data and url are specified")
-		return c.JSON(http.StatusBadRequest, client2.Error{Error: "Both file data and url are specified",
+		return c.JSON(http.StatusBadRequest, client.Error{Error: "Both file data and url are specified",
 			Details: "Only one of them should be specified"})
 	}
 
@@ -65,14 +72,18 @@ func (h *Audio2TextHandler) HandleRequest(c echo.Context) error {
 
 		if err != nil {
 			h.logger.Error().Msg("Error downloading file: " + err.Error())
-			return c.JSON(http.StatusInternalServerError, client2.Error{Error: "Error downloading file",
+			return c.JSON(http.StatusInternalServerError, client.Error{Error: "Error downloading file",
 				Details: err.Error()})
 		}
 	}
 
+	if request.Operation_ID != "" {
+		go h.dbworker.RegisterOperation(request.Operation_ID, "audio")
+	}
+
 	if len(request.File.Data) == 0 || request.File.Type == "" {
 		h.logger.Error().Msg("Missing file data or file type")
-		return c.JSON(http.StatusBadRequest, client2.Error{Error: "Missing file data or file type",
+		return c.JSON(http.StatusBadRequest, client.Error{Error: "Missing file data or file type",
 			Details: "File data and file type are required"})
 	}
 
@@ -84,13 +95,18 @@ func (h *Audio2TextHandler) HandleRequest(c echo.Context) error {
 
 	if err != nil {
 		h.logger.Error().Msg("Error converting audio to text: " + err.Error())
-		return c.JSON(http.StatusInternalServerError, client2.Error{Error: "Error converting audio to text",
+		return c.JSON(http.StatusInternalServerError, client.Error{Error: "Error converting audio to text",
 			Details: err.Error()})
 	}
 
-	var response = client2.Response{
+	var response = client.Response{
 		RawText:  rawText,
 		NormText: normText,
+	}
+
+	if request.Operation_ID != "" {
+		data_result, _ := json.Marshal(response)
+		go h.dbworker.SetResult(request.Operation_ID, data_result)
 	}
 	return c.JSON(http.StatusOK, response)
 }
