@@ -29,7 +29,6 @@ func (e *Endpoint) Start() error {
 	server.Use(middleware.Logger())
 	server.Use(middleware.Recover())
 	server.Use(middleware.Gzip())
-	server.Use(middleware.CSRF())
 
 	server.POST("/", e.handler.HandleRequest)
 	return server.Start(config.ADDR)
