@@ -106,7 +106,7 @@ func (h *Audio2TextHandler) HandleRequest(c echo.Context) error {
 
 	if request.Operation_ID != "" {
 		dbResult := client.DBResult{
-			FileName: "",
+			FileName: "recognized-file." + request.File.Type,
 			RawText:  rawText,
 			NormText: normText,
 		}
