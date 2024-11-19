@@ -2,5 +2,5 @@ package service
 
 const (
 	UNIQ_PHRASE_SPLITTER = "-"
-	MAX_LENGTH           = 8192
+	MAX_LENGTH           = 32000
 )

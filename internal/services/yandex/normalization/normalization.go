@@ -49,7 +49,6 @@ func (n *Normalization) NormalizeText(text string) string {
 	}
 
 	httpRequest.Header.Set("Content-Type", "application/json")
-	httpRequest.Header.Set("Authorization", "Bearer "+server.TEXT_2_TEXT_KEY)
 
 	client := &http.Client{}
 

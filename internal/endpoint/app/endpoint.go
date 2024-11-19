@@ -26,11 +26,10 @@ func (e *Endpoint) Start() error {
 
 	// Cоздаем новый Echo-сервер и привязываем его к порту
 	server := echo.New()
-
-	server.Use(middleware.KeyAuth(func(key string, c echo.Context) (bool, error) {
-		return key == config.BEARER_KEY, nil
-	}))
 	server.Use(middleware.Logger())
+	server.Use(middleware.Recover())
+	server.Use(middleware.Gzip())
+	server.Use(middleware.CSRF())
 
 	server.POST("/", e.handler.HandleRequest)
 	return server.Start(config.ADDR)
