@@ -15,7 +15,7 @@ type Service interface {
 }
 
 type Donwloader interface {
-	Download(url string) ([]byte, string, error)
+	Download(url string) ([]byte, string, string, error)
 }
 
 type DBWorker interface {
@@ -68,7 +68,7 @@ func (h *Audio2TextHandler) HandleRequest(c echo.Context) error {
 
 	if request.URL != "" {
 		h.logger.Info().Msg("Downloading file from URL: " + request.URL)
-		request.File.Data, request.File.Type, err = h.downloader.Download(request.URL)
+		request.File.Data, request.File.Type, request.File.Name, err = h.downloader.Download(request.URL)
 
 		if err != nil {
 			h.logger.Error().Msg("Error downloading file: " + err.Error())
