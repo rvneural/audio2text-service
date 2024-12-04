@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"os"
+	"strconv"
 
 	"github.com/labstack/echo/v4"
 	"github.com/rs/zerolog"
@@ -19,7 +20,7 @@ type Donwloader interface {
 }
 
 type DBWorker interface {
-	RegisterOperation(uniqID string, operation_type string) error
+	RegisterOperation(uniqID string, operation_type string, user_id int) error
 	SetResult(uniqID string, data []byte) error
 }
 
@@ -78,7 +79,11 @@ func (h *Audio2TextHandler) HandleRequest(c echo.Context) error {
 	}
 
 	if request.Operation_ID != "" {
-		go h.dbworker.RegisterOperation(request.Operation_ID, "audio")
+		id, err := strconv.Atoi(request.UserID)
+		if err != nil {
+			id = 0
+		}
+		go h.dbworker.RegisterOperation(request.Operation_ID, "audio", id)
 	}
 
 	if len(request.File.Data) == 0 || request.File.Type == "" {

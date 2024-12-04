@@ -11,6 +11,7 @@ type Request struct {
 	} `json:"file" xml:"file" form:"file"`
 	Languages []string `json:"languages" xml:"languages" form:"languages"`
 	Dialog    bool     `json:"dialog" xml:"dialog" form:"dialog"`
+	UserID    string   `json:"user_id" xml:"user_id" form:"user_id"`
 }
 
 type DBResult struct {
