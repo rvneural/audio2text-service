@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"os"
-	"strconv"
 
 	"github.com/labstack/echo/v4"
 	"github.com/rs/zerolog"
@@ -78,18 +77,14 @@ func (h *Audio2TextHandler) HandleRequest(c echo.Context) error {
 		}
 	}
 
-	if request.Operation_ID != "" {
-		id, err := strconv.Atoi(request.UserID)
-		if err != nil {
-			id = 0
-		}
-		go h.dbworker.RegisterOperation(request.Operation_ID, "audio", id)
-	}
-
 	if len(request.File.Data) == 0 || request.File.Type == "" {
 		h.logger.Error().Msg("Missing file data or file type")
 		return c.JSON(http.StatusBadRequest, client.Error{Error: "Missing file data or file type",
 			Details: "File data and file type are required"})
+	}
+
+	if request.Operation_ID != "" {
+		go h.dbworker.RegisterOperation(request.Operation_ID, "audio", request.UserID)
 	}
 
 	h.logger.Info().Msg("Converting file")
@@ -100,6 +95,7 @@ func (h *Audio2TextHandler) HandleRequest(c echo.Context) error {
 
 	if err != nil {
 		h.logger.Error().Msg("Error converting audio to text: " + err.Error())
+		go h.saveOperation(request, err.Error(), err.Error())
 		return c.JSON(http.StatusInternalServerError, client.Error{Error: "Error converting audio to text",
 			Details: err.Error()})
 	}
@@ -108,7 +104,11 @@ func (h *Audio2TextHandler) HandleRequest(c echo.Context) error {
 		RawText:  rawText,
 		NormText: normText,
 	}
+	go h.saveOperation(request, rawText, normText)
+	return c.JSON(http.StatusOK, response)
+}
 
+func (h *Audio2TextHandler) saveOperation(request *client.Request, rawText string, normText string) {
 	if request.Operation_ID != "" {
 		if request.File.Name == "" {
 			request.File.Name = "recognized-file." + request.File.Type
@@ -119,7 +119,6 @@ func (h *Audio2TextHandler) HandleRequest(c echo.Context) error {
 			NormText: normText,
 		}
 		data_result, _ := json.Marshal(dbResult)
-		go h.dbworker.SetResult(request.Operation_ID, data_result)
+		h.dbworker.SetResult(request.Operation_ID, data_result)
 	}
-	return c.JSON(http.StatusOK, response)
 }
