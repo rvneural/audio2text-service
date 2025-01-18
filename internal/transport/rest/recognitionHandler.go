@@ -84,7 +84,10 @@ func (h *Audio2TextHandler) HandleRequest(c echo.Context) error {
 	}
 
 	if request.Operation_ID != "" {
-		go h.dbworker.RegisterOperation(request.Operation_ID, "audio", request.UserID)
+		err = h.dbworker.RegisterOperation(request.Operation_ID, "audio", request.UserID)
+		if err != nil {
+			h.logger.Error().Msg("Error registering operation: " + err.Error())
+		}
 	}
 
 	h.logger.Info().Msg("Converting file")
